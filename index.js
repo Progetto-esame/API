@@ -9,6 +9,7 @@ const app = express();
 
 //app.use(cors());
 
+
 dotenv.config();
 
 const setHeaders = (res) => {
@@ -180,13 +181,54 @@ if (uri.length > 0) {
   });
 
   app.post('/login', (req, res) =>{
-    console.log(req.body);
-    res.send('👍')
-  })
 
-  app.listen(port, () => {
-    console.log(`⚡️[server]: Server is running at port ${port}`);
+    const { email, password } = req.body;
+
+    login(email, password);
+    console.log('Connection string: ' + process.env.STRING_CONNECTION);
+    console.log(req.body);
+    console.log(res.statusCode);
+    res.send('👍');
+  });
+
+  app.listen(port, process.env.ip, () => {
+    console.log(`⚡️[server]: Server is running at port ${port}, ip: ${process.env.ip}`);
   });
 }
 
 
+
+const bcrypt = require('bcrypt');
+function login(email, password) {
+    
+    MongoClient.connect(process.env.STRING_CONNECTION, (err, client) => {
+        console.log('Connected to MongoDB');
+        if (err) throw err;
+        const db = client.db(process.env.DB_NAME);
+        const users = db.collection('Utenti');
+        users.findOne({ email }, (err, user) => {
+            if (err) {
+              return res.status(500).send('Internal server error');
+            };
+            // User not found
+            if (!user) {
+                return res.status(401).send('Invalid email or password');
+            }
+            // Compare the provided password with the hashed password stored in the database
+            bcrypt.compare(password, user.password, (err, result) => {
+                if (err) throw err;
+                if (result) {
+                    // Store user data in session
+                    res.send('Allowed');
+                    req.session.user = user;
+                    res.redirect(''); // Redirect to the dashboard page after successful login
+
+                } else {
+                    res.status(401).send('Invalid email or password');
+                }
+            });
+        });
+
+    });
+    console.log('Disconnected from MongoDB'); 
+}
