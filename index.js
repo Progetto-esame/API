@@ -1,6 +1,7 @@
 const express = require('express');
-const {MongoClient} = require('mongodb');
-const {ObjectId} = require('mongodb');
+const { MongoClient } = require('mongodb');
+const { ObjectId } = require('mongodb');
+var crypto = require('crypto');
 const dotenv = require('dotenv');
 const bodyParser = require('body-parser');
 const app = express();
@@ -25,7 +26,7 @@ app.use(
   })
 );
 
-app.use( (req, res, next) => {
+app.use((req, res, next) => {
   setHeaders(res);
   next();
 });
@@ -68,7 +69,7 @@ if (uri.length > 0) {
         query[key] =
           key == '_id'
             ? new ObjectId(req.query[key]?.toString()) ?? ''
-            : req.query[key]; 
+            : req.query[key];
 
       const result = await auto.find(query).toArray();
 
@@ -89,15 +90,15 @@ if (uri.length > 0) {
       const query = {};
       let result;
 
-      if(req.query._id != '' && req.query._id != undefined) {
+      if (req.query._id != '' && req.query._id != undefined) {
         for (const key in req.query)
           query[key] =
             key == '_id'
               ? new ObjectId(req.query[key]?.toString()) ?? ''
               : req.query[key];
-  
+
         result = auto.findOne(query);
-      }else{
+      } else {
         result = new Promise((resolve) => resolve(null));
       }
       res.setHeader('Access-Control-Allow-Origin', '*');
@@ -114,7 +115,7 @@ if (uri.length > 0) {
     try {
       const database = client.db(dbName);
       const auto = database.collection(collection.auto);
-      
+
       auto.insertOne(req.body);
 
       res.setHeader('Access-Control-Allow-Origin', '*');
@@ -180,55 +181,68 @@ if (uri.length > 0) {
     }
   });
 
-  app.post('/login', (req, res) =>{
+  app.post('/login', (req, res) => {
 
     const { email, password } = req.body;
 
-    login(email, password);
-    console.log('Connection string: ' + process.env.STRING_CONNECTION);
-    console.log(req.body);
-    console.log(res.statusCode);
-    res.send('👍');
+    const client = new MongoClient(uri);
+
+    try {
+      const db = client.db(process.env.DB_NAME);
+      const users = db.collection('Utenti');
+      users.findOne({'email':email}, (err, user) => {
+        console.log(email, password);
+        if (err) {
+          return res.status(500).send('Internal server error');
+        };
+        // User not found
+        if (!user) {
+          return res.status(401).send('Invalid email or password');
+        }
+        // Compare the provided password with the hashed password stored in the database
+
+        const hashedPass = crypto.createHash("sha256").update(password).digest("hex");
+
+        console.log("Hashed pass: " + hashedPass);
+        console.log("User pass: " + user.password);
+
+        if (hashedPass == user.password) {
+          res.send('Allowed');
+          req.session.user = user;
+          res.redirect(''); // Redirect to the dashboard page after successful login
+        } else {
+          res.status(401).send('Invalid email or password');
+        }
+      });
+    } catch {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.send('error');
+    }
+  });
+
+  app.post('/register', (req, res) => {
+    const { name, surname, email, password } = req.body;
+
+    const client = new MongoClient(uri);
+
+    try {
+      const database = client.db(dbName);
+      const utenti = database.collection(collection.utenti);
+
+      const hashedPass = crypto.createHash("sha256").update(password).digest("hex");
+
+      const user = { name, surname, email, password: hashedPass };
+      utenti.insertOne(user);
+
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.send('ok');
+    } catch {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.send('error');
+    }
   });
 
   app.listen(port, process.env.ip, () => {
     console.log(`⚡️[server]: Server is running at port ${port}, ip: ${process.env.ip}`);
   });
-}
-
-
-
-const bcrypt = require('bcrypt');
-function login(email, password) {
-    
-    MongoClient.connect(process.env.STRING_CONNECTION, (err, client) => {
-        console.log('Connected to MongoDB');
-        if (err) throw err;
-        const db = client.db(process.env.DB_NAME);
-        const users = db.collection('Utenti');
-        users.findOne({ email }, (err, user) => {
-            if (err) {
-              return res.status(500).send('Internal server error');
-            };
-            // User not found
-            if (!user) {
-                return res.status(401).send('Invalid email or password');
-            }
-            // Compare the provided password with the hashed password stored in the database
-            bcrypt.compare(password, user.password, (err, result) => {
-                if (err) throw err;
-                if (result) {
-                    // Store user data in session
-                    res.send('Allowed');
-                    req.session.user = user;
-                    res.redirect(''); // Redirect to the dashboard page after successful login
-
-                } else {
-                    res.status(401).send('Invalid email or password');
-                }
-            });
-        });
-
-    });
-    console.log('Disconnected from MongoDB'); 
 }
