@@ -4,6 +4,7 @@ const { ObjectId } = require('mongodb');
 var crypto = require('crypto');
 const dotenv = require('dotenv');
 const bodyParser = require('body-parser');
+const { Console } = require('console');
 const app = express();
 
 //const cors = require('cors');
@@ -181,42 +182,35 @@ if (uri.length > 0) {
     }
   });
 
-  app.post('/login', (req, res) => {
+  app.post('/login', async (req, res) => {
 
     const { email, password } = req.body;
-
+    console.log(email);
     const client = new MongoClient(uri);
-
     try {
-      const db = client.db(process.env.DB_NAME);
+      const db = client.db(dbName);
       const users = db.collection('Utenti');
-      users.findOne({'email':email}, (err, user) => {
+      const user = await users.findOne({ email: email });
+      console.log(user);
+
+      if (!user) {
         console.log(email, password);
-        if (err) {
-          return res.status(500).send('Internal server error');
-        };
-        // User not found
-        if (!user) {
-          return res.status(401).send('Invalid email or password');
-        }
-        // Compare the provided password with the hashed password stored in the database
+        return res.status(401).send('Invalid email or password');
+      }
+      // Compare the provided password with the hashed password stored in the database
 
-        const hashedPass = crypto.createHash("sha256").update(password).digest("hex");
+      const hashedPass = crypto.createHash("sha256").update(password).digest("hex");
+      console.log("Hashed pass: " + hashedPass);
+      console.log("User pass: " + user.password);
 
-        console.log("Hashed pass: " + hashedPass);
-        console.log("User pass: " + user.password);
-
-        if (hashedPass == user.password) {
-          res.send('Allowed');
-          req.session.user = user;
-          res.redirect(''); // Redirect to the dashboard page after successful login
-        } else {
-          res.status(401).send('Invalid email or password');
-        }
-      });
-    } catch {
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.send('error');
+      if (hashedPass == user.password) {
+        //req.session.user = user; --da fixare sessione
+        res.send('Allowed');
+      } else {
+        return res.status(401).send('Invalid email or password');
+      }
+    } catch(e) {
+      res.status(500).send('Internal server error');
     }
   });
 
@@ -224,7 +218,7 @@ if (uri.length > 0) {
     const { name, surname, email, password } = req.body;
 
     const client = new MongoClient(uri);
-
+    
     try {
       const database = client.db(dbName);
       const utenti = database.collection(collection.utenti);
