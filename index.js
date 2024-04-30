@@ -205,12 +205,12 @@ if (uri.length > 0) {
 
       if (hashedPass == user.password) {
         //req.session.user = user; --da fixare sessione
-        res.send('Allowed');
+        res.status(200).json({ message: 'Allowed' });
       } else {
-        return res.status(401).send('Invalid email or password');
+        return res.status(401).json('Invalid email or password');
       }
     } catch(e) {
-      res.status(500).send('Internal server error');
+      res.status(500).json('Internal server error');
     }
   });
 
