@@ -7,10 +7,6 @@ const bodyParser = require('body-parser');
 const { Console } = require('console');
 const app = express();
 
-//const cors = require('cors');
-
-//app.use(cors());
-
 
 dotenv.config();
 
@@ -222,21 +218,28 @@ if (uri.length > 0) {
     try {
       const database = client.db(dbName);
       const utenti = database.collection(collection.utenti);
-
+      const searchUser = utenti.findOne({ email: email });
+      console.log(searchUser);
+      if(!searchUser) {
       const hashedPass = crypto.createHash("sha256").update(password).digest("hex");
 
       const user = { name, surname, email, password: hashedPass };
       utenti.insertOne(user);
 
       res.setHeader('Access-Control-Allow-Origin', '*');
-      res.send('ok');
+      res.send('Utente registrato correttamente');
+      }else{
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.send('Utente già registrato');
+      }
     } catch {
       res.setHeader('Access-Control-Allow-Origin', '*');
-      res.send('error');
+      res.send('Ops...Qualcosa è andato storto');
     }
   });
 
   app.listen(port, process.env.ip, () => {
     console.log(`⚡️[server]: Server is running at port ${port}, ip: ${process.env.ip}`);
   });
+
 }
