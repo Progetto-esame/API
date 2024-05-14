@@ -210,25 +210,28 @@ if (uri.length > 0) {
     }
   });
 
-  app.post('/register', (req, res) => {
-    const { name, surname, email, password } = req.body;
+  app.post('/register', async (req, res) => {
+    const { name, surname, email, password } = req.body; //destrutturazione dei dati passati
 
-    const client = new MongoClient(uri);
+    const client = new MongoClient(uri); //istanza del client per la connessione al db
     
     try {
+      console.log('Entro nel try')
       const database = client.db(dbName);
-      const utenti = database.collection(collection.utenti);
-      const searchUser = utenti.findOne({ email: email });
-      console.log(searchUser);
-      if(!searchUser) {
-      const hashedPass = crypto.createHash("sha256").update(password).digest("hex");
+      const utenti = database.collection('Utenti'); //collezione utenti (Sono sicuro si chiami così)
 
-      const user = { name, surname, email, password: hashedPass };
-      utenti.insertOne(user);
+      const searchedUser = await utenti.findOne({ email: email }); //cerco se qualcuno non abbia già questa mail
+
+      if(!searchedUser) { //controllo, se non esiste un utente allora lo registro
+      const hashedPass = crypto.createHash("sha256").update(password).digest("hex"); //hasho la pwd
+      const user = { name, surname, email, password: hashedPass }; //credo oggetto utente
+      await utenti.insertOne(user);
 
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.send('Utente registrato correttamente');
+      console.log('utente registrato correttamente'); //debug
       }else{
+        console.log('utente già registrato');
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.send('Utente già registrato');
       }
