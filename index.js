@@ -180,33 +180,28 @@ if (uri.length > 0) {
 
   app.post('/login', async (req, res) => {
 
-    const { email, password } = req.body;
-    console.log(email);
-    const client = new MongoClient(uri);
+    const { email, password } = req.body; //destrutturazione dei dati passati
+
+    const client = new MongoClient(uri); //istanza del client per la connessione al db
     try {
       const db = client.db(dbName);
       const users = db.collection('Utenti');
-      const user = await users.findOne({ email: email });
-      console.log(user);
+      const user = await users.findOne({ email: email }); //cerco l'utente con la mail passata 
 
-      if (!user) {
+      if (!user) { //se non esiste l'utente con quella mail
         console.log(email, password);
         return res.status(401).send('Invalid email or password');
       }
-      // Compare the provided password with the hashed password stored in the database
 
       const hashedPass = crypto.createHash("sha256").update(password).digest("hex");
-      console.log("Hashed pass: " + hashedPass);
-      console.log("User pass: " + user.password);
 
-      if (hashedPass == user.password) {
-        //req.session.user = user; --da fixare sessione
-        res.status(200).json({ message: 'Allowed' });
+      if (hashedPass == user.password) { //se la password è corretta
+        res.status(200).json({ message: 'Autorizzato' }); //messaggio di autorizzazione
       } else {
-        return res.status(401).json('Invalid email or password');
+        return res.status(401).json('Email o password errati');
       }
     } catch(e) {
-      res.status(500).json('Internal server error');
+      res.status(500).json('Internal server error'); //errore interno
     }
   });
 
@@ -216,7 +211,6 @@ if (uri.length > 0) {
     const client = new MongoClient(uri); //istanza del client per la connessione al db
     
     try {
-      console.log('Entro nel try')
       const database = client.db(dbName);
       const utenti = database.collection('Utenti'); //collezione utenti (Sono sicuro si chiami così)
 
@@ -228,16 +222,14 @@ if (uri.length > 0) {
       await utenti.insertOne(user);
 
       res.setHeader('Access-Control-Allow-Origin', '*');
-      res.send('Utente registrato correttamente');
-      console.log('utente registrato correttamente'); //debug
+      res.send('Utente registrato correttamente'); //messaggio di successo
       }else{
-        console.log('utente già registrato');
         res.setHeader('Access-Control-Allow-Origin', '*');
-        res.send('Utente già registrato');
+        res.send('Utente già registrato'); //messaggio di errore
       }
     } catch {
       res.setHeader('Access-Control-Allow-Origin', '*');
-      res.send('Ops...Qualcosa è andato storto');
+      res.send('Ops...Qualcosa è andato storto'); //messaggio di errore
     }
   });
 
