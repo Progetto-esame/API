@@ -46,8 +46,12 @@ if (uri.length > 0) {
 
       const result = await auto.find().toArray();
 
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.send(result);
+      if(result.length == 0)
+        res.send('Nessun risultato trovato');
+      else{
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.send(result);
+      }
     } finally {
       await client.close();
     }
