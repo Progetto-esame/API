@@ -47,10 +47,10 @@ if (uri.length > 0) {
       const result = await auto.find().toArray();
 
       if(result.length == 0)
-        res.send('Nessun risultato trovato');
+        res.json({message: 'Nessun risultato trovato'});
       else{
         res.setHeader('Access-Control-Allow-Origin', '*');
-        res.send(result);
+        res.json(result);
       }
     } finally {
       await client.close();
@@ -75,7 +75,7 @@ if (uri.length > 0) {
       const result = await auto.find(query).toArray();
 
       res.setHeader('Access-Control-Allow-Origin', '*');
-      res.send(result);
+      res.json(result);
     } finally {
       await client.close();
     }
@@ -104,7 +104,7 @@ if (uri.length > 0) {
       }
       res.setHeader('Access-Control-Allow-Origin', '*');
 
-      res.send(await result != null);
+      res.json(await result != null);
     } finally {
       await client.close();
     }
@@ -120,7 +120,7 @@ if (uri.length > 0) {
       auto.insertOne(req.body);
 
       res.setHeader('Access-Control-Allow-Origin', '*');
-      res.send('ok');
+      res.json('ok');
     } finally {
       await client.close();
     }
@@ -136,7 +136,7 @@ if (uri.length > 0) {
       auto.insertMany(req.body);
 
       res.setHeader('Access-Control-Allow-Origin', '*');
-      res.send('ok');
+      res.json('ok');
     } finally {
       await client.close();
     }
@@ -156,7 +156,7 @@ if (uri.length > 0) {
       auto.updateOne({ _id: id }, { $set: req.body });
 
       res.setHeader('Access-Control-Allow-Origin', '*');
-      res.send('ok');
+      res.json('ok');
     } finally {
       await client.close();
     }
@@ -176,7 +176,7 @@ if (uri.length > 0) {
       auto.deleteOne(filter);
 
       res.setHeader('Access-Control-Allow-Origin', '*');
-      res.send('ok');
+      res.json('ok');
     } finally {
       await client.close();
     }
@@ -194,7 +194,7 @@ if (uri.length > 0) {
 
       if (!user) { //se non esiste l'utente con quella mail
         console.log(email, password);
-        return res.status(401).send('Invalid email or password');
+        return res.status(401).json({message: 'Email o password errati'});
       }
 
       const hashedPass = crypto.createHash("sha256").update(password).digest("hex");
@@ -202,10 +202,10 @@ if (uri.length > 0) {
       if (hashedPass == user.password) { //se la password è corretta
         res.status(200).json({ message: 'Autorizzato' }); //messaggio di autorizzazione
       } else {
-        return res.status(401).json('Email o password errati');
+        return res.status(401).json({message: 'Email o password errati'});
       }
     } catch(e) {
-      res.status(500).json('Internal server error'); //errore interno
+      res.status(500).json({error: 'Ops...Qualcosa è andato storto'}); //errore interno
     }
   });
 
@@ -216,24 +216,24 @@ if (uri.length > 0) {
     
     try {
       const database = client.db(dbName);
-      const utenti = database.collection('Utenti'); //collezione utenti (Sono sicuro si chiami così)
+      const users = database.collection('Utenti'); //collezione utenti
 
-      const searchedUser = await utenti.findOne({ email: email }); //cerco se qualcuno non abbia già questa mail
+      const searchedUser = await users.findOne({ email: email }); //cerco se qualcuno non abbia già questa mail
 
-      if(!searchedUser) { //controllo, se non esiste un utente allora lo registro
-      const hashedPass = crypto.createHash("sha256").update(password).digest("hex"); //hasho la pwd
-      const user = { name, surname, email, password: hashedPass }; //credo oggetto utente
-      await utenti.insertOne(user);
+      if(!searchedUser) { //controllo se non esiste un utente allora lo registro
+      const hashedPass = crypto.createHash("sha256").update(password).digest("hex"); //hashing della pwd
+      const user = { name, surname, email, password: hashedPass }; //creo oggetto utente
+      await users.insertOne(user); //inserisco l'utente
 
       res.setHeader('Access-Control-Allow-Origin', '*');
-      res.send('Utente registrato correttamente'); //messaggio di successo
+      res.status(200).json({message: 'Utente registrato correttamente'}); //messaggio di successo
       }else{
         res.setHeader('Access-Control-Allow-Origin', '*');
-        res.send('Utente già registrato'); //messaggio di errore
+        res.status(200).json({message: 'Utente già registrato'}); //messaggio di avviso
       }
     } catch {
       res.setHeader('Access-Control-Allow-Origin', '*');
-      res.send('Ops...Qualcosa è andato storto'); //messaggio di errore
+      res.status(500).json({error: 'Ops...Qualcosa è andato storto'}); //messaggio di errore
     }
   });
 
