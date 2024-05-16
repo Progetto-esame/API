@@ -4,7 +4,7 @@ const { ObjectId } = require('mongodb');
 var crypto = require('crypto');
 const dotenv = require('dotenv');
 const bodyParser = require('body-parser');
-const { Console } = require('console');
+const { Console, error } = require('console');
 const app = express();
 
 
@@ -194,7 +194,7 @@ if (uri.length > 0) {
 
       if (!user) { //se non esiste l'utente con quella mail
         console.log(email, password);
-        return res.status(401).json({message: 'Email o password errati'});
+        return res.status(200).json({message: 'Email o password errati'});
       }
 
       const hashedPass = crypto.createHash("sha256").update(password).digest("hex");
@@ -202,7 +202,7 @@ if (uri.length > 0) {
       if (hashedPass == user.password) { //se la password è corretta
         res.status(200).json({ message: 'Autorizzato' }); //messaggio di autorizzazione
       } else {
-        return res.status(401).json({message: 'Email o password errati'});
+        return res.status(200).json({error: 'Email o password errati'});
       }
     } catch(e) {
       res.status(500).json({error: 'Ops...Qualcosa è andato storto'}); //errore interno
