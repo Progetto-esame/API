@@ -5,7 +5,10 @@ var crypto = require('crypto');
 const dotenv = require('dotenv');
 const bodyParser = require('body-parser');
 const { Console, error } = require('console');
+const session = require('express-session')
 const app = express();
+app.use(session({secret: 'Your_Secret_Key', resave: true, saveUninitialized: true}));
+     
 
 
 dotenv.config();
@@ -191,6 +194,7 @@ if (uri.length > 0) {
       const db = client.db(dbName);
       const users = db.collection('Utenti');
       const user = await users.findOne({ email: email }); //cerco l'utente con la mail passata 
+      delete user["cars"];
 
       if (!user) { //se non esiste l'utente con quella mail
         console.log(email, password);
@@ -200,9 +204,11 @@ if (uri.length > 0) {
       const hashedPass = crypto.createHash("sha256").update(password).digest("hex");
 
       if (hashedPass == user.password) { //se la password è corretta
-        res.status(200).json({ message: 'Autorizzato' }); //messaggio di autorizzazione
+        res.status(200).json({ message: 'Autorizzato', user: user}); //messaggio di autorizzazione
+        
       } else {
-        return res.status(200).json({error: 'Email o password errati'});
+        res.status(200).json({error: 'Email o password errati'});
+        
       }
     } catch(e) {
       res.status(500).json({error: 'Ops...Qualcosa è andato storto'}); //errore interno
