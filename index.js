@@ -191,6 +191,9 @@ if (uri.length > 0) {
 
     const client = new MongoClient(uri); //istanza del client per la connessione al db
     try {
+      if (email == '' || password == '') { //controllo se i campi sono vuoti
+        return res.status(500).json({error: 'Inserire email e password'});
+      }
       const db = client.db(dbName);
       const users = db.collection('Utenti');
       const user = await users.findOne({ email: email }); //cerco l'utente con la mail passata 
@@ -211,6 +214,7 @@ if (uri.length > 0) {
         
       }
     } catch(e) {
+      console.log(e.message);
       res.status(500).json({error: 'Ops...Qualcosa è andato storto'}); //errore interno
     }
   });
@@ -221,6 +225,9 @@ if (uri.length > 0) {
     const client = new MongoClient(uri); //istanza del client per la connessione al db
     
     try {
+      if (name == '' || surname == '' || email == '' || password == '') { //controllo se i campi sono vuoti
+        return res.status(500).json({error: 'Inserire tutti i campi'});
+      }
       const database = client.db(dbName);
       const users = database.collection('Utenti'); //collezione utenti
 
@@ -237,9 +244,32 @@ if (uri.length > 0) {
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.status(200).json({message: 'Utente già registrato'}); //messaggio di avviso
       }
-    } catch {
+    } catch{
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.status(500).json({error: 'Ops...Qualcosa è andato storto'}); //messaggio di errore
+    }
+  });
+
+  app.post('/renewPwd', async (req, res) => {
+    const {pwdUser, email, oldPwd, newPwd} = req.body; //destrutturazione dei dati passati
+    const client = new MongoClient(uri); //istanza del client per la connessione al db
+
+    try {
+      const hashedPass = crypto.createHash("sha256").update(oldPwd).digest("hex"); //hashing della pwd
+      console.log(hashedPass);
+      console.log(pwdUser);
+      if(hashedPass == pwdUser){ //controllo se la pwd passata è uguale a quella dell'utente
+        const db = client.db(dbName);
+        const users = db.collection('Utenti');
+        const newPwdHashed = crypto.createHash("sha256").update(newPwd).digest("hex"); //hashing della pwd
+        const user = await users.updateOne({ email: email }, { $set: { password: newPwdHashed } }); //aggiorno la pwd
+        res.status(200).json({message: 'Password aggiornata correttamente'}); //messaggio di successo
+      }else{
+        res.status(500).json({error: 'La password corrente non corrisponde'}); //messaggio di errore
+      }
+    } catch (e) {
+      console.log(e.message);
+      res.status(500).json({error: 'Ops...Qualcosa è andato storto'}); //errore interno
     }
   });
 
