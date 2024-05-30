@@ -9,6 +9,20 @@ const session = require('express-session')
 const app = express();
 app.use(session({secret: 'Your_Secret_Key', resave: true, saveUninitialized: true}));
      
+const multer = require('multer');
+
+// Set up storage for uploaded files
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'img/');
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + '-' + file.originalname);
+  }
+});
+
+// Create the multer instance
+const upload = multer({ storage: storage });
 
 
 dotenv.config();
@@ -271,6 +285,12 @@ if (uri.length > 0) {
       console.log(e.message);
       res.status(500).json({error: 'Ops...Qualcosa è andato storto'}); //errore interno
     }
+  });
+
+
+  app.post('/upload', upload.single('file'), (req, res) => {
+    // Handle the uploaded file
+    res.json({ message: 'File uploaded successfully!' });
   });
 
   app.listen(port, process.env.ip, () => {
