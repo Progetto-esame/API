@@ -8,7 +8,7 @@ const fs = require('fs');
 
 
 const app = express();
-     
+
 const fileUpload = require('express-fileupload');
 
 dotenv.config();
@@ -54,9 +54,9 @@ if (uri.length > 0) {
 
       const result = await auto.find().toArray();
 
-      if(result.length == 0)
-        res.json({message: 'Nessun risultato trovato'});
-      else{
+      if (result.length == 0)
+        res.json({ message: 'Nessun risultato trovato' });
+      else {
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.json(result);
       }
@@ -197,7 +197,7 @@ if (uri.length > 0) {
     const client = new MongoClient(uri); //istanza del client per la connessione al db
     try {
       if (email == '' || password == '') { //controllo se i campi sono vuoti
-        return res.status(500).json({error: 'Inserire email e password'});
+        return res.status(500).json({ error: 'Inserire email e password' });
       }
       const db = client.db(dbName);
       const users = db.collection('Utenti');
@@ -206,21 +206,21 @@ if (uri.length > 0) {
 
       if (!user) { //se non esiste l'utente con quella mail
         console.log(email, password);
-        return res.status(200).json({message: 'Email o password errati'});
+        return res.status(200).json({ message: 'Email o password errati' });
       }
 
       const hashedPass = crypto.createHash("sha256").update(password).digest("hex");
 
       if (hashedPass == user.password) { //se la password è corretta
-        res.status(200).json({ message: 'Autorizzato', user: user}); //messaggio di autorizzazione
-        
+        res.status(200).json({ message: 'Autorizzato', user: user }); //messaggio di autorizzazione
+
       } else {
-        res.status(200).json({error: 'Email o password errati'});
-        
+        res.status(200).json({ error: 'Email o password errati' });
+
       }
-    } catch(e) {
+    } catch (e) {
       console.log(e.message);
-      res.status(500).json({error: 'Ops...Qualcosa è andato storto'}); //errore interno
+      res.status(500).json({ error: 'Ops...Qualcosa è andato storto' }); //errore interno
     }
   });
 
@@ -228,68 +228,85 @@ if (uri.length > 0) {
     const { name, surname, email, password } = req.body; //destrutturazione dei dati passati
 
     const client = new MongoClient(uri); //istanza del client per la connessione al db
-    
+
     try {
       if (name == '' || surname == '' || email == '' || password == '') { //controllo se i campi sono vuoti
-        return res.status(500).json({error: 'Inserire tutti i campi'});
+        return res.status(500).json({ error: 'Inserire tutti i campi' });
       }
       const database = client.db(dbName);
       const users = database.collection('Utenti'); //collezione utenti
 
       const searchedUser = await users.findOne({ email: email }); //cerco se qualcuno non abbia già questa mail
 
-      if(!searchedUser) { //controllo se non esiste un utente allora lo registro
-      const hashedPass = crypto.createHash("sha256").update(password).digest("hex"); //hashing della pwd
-      const user = { name, surname, email, password: hashedPass }; //creo oggetto utente
-      await users.insertOne(user); //inserisco l'utente
+      if (!searchedUser) { //controllo se non esiste un utente allora lo registro
+        const hashedPass = crypto.createHash("sha256").update(password).digest("hex"); //hashing della pwd
+        const user = { name, surname, email, password: hashedPass }; //creo oggetto utente
+        await users.insertOne(user); //inserisco l'utente
 
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.status(200).json({message: 'Utente registrato correttamente'}); //messaggio di successo
-      }else{
         res.setHeader('Access-Control-Allow-Origin', '*');
-        res.status(200).json({message: 'Utente già registrato'}); //messaggio di avviso
+        res.status(200).json({ message: 'Utente registrato correttamente' }); //messaggio di successo
+      } else {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.status(200).json({ message: 'Utente già registrato' }); //messaggio di avviso
       }
-    } catch{
+    } catch {
       res.setHeader('Access-Control-Allow-Origin', '*');
-      res.status(500).json({error: 'Ops...Qualcosa è andato storto'}); //messaggio di errore
+      res.status(500).json({ error: 'Ops...Qualcosa è andato storto' }); //messaggio di errore
     }
   });
 
   app.post('/renewPwd', async (req, res) => {
-    const {pwdUser, email, oldPwd, newPwd} = req.body; //destrutturazione dei dati passati
+    const { pwdUser, email, oldPwd, newPwd } = req.body; //destrutturazione dei dati passati
     const client = new MongoClient(uri); //istanza del client per la connessione al db
 
     try {
       const hashedPass = crypto.createHash("sha256").update(oldPwd).digest("hex"); //hashing della pwd
       console.log(hashedPass);
       console.log(pwdUser);
-      if(hashedPass == pwdUser){ //controllo se la pwd passata è uguale a quella dell'utente
+      if (hashedPass == pwdUser) { //controllo se la pwd passata è uguale a quella dell'utente
         const db = client.db(dbName);
         const users = db.collection('Utenti');
         const newPwdHashed = crypto.createHash("sha256").update(newPwd).digest("hex"); //hashing della pwd
         const user = await users.updateOne({ email: email }, { $set: { password: newPwdHashed } }); //aggiorno la pwd
-        res.status(200).json({message: 'Password aggiornata correttamente'}); //messaggio di successo
-      }else{
-        res.status(500).json({error: 'La password corrente non corrisponde'}); //messaggio di errore
+        res.status(200).json({ message: 'Password aggiornata correttamente' }); //messaggio di successo
+      } else {
+        res.status(500).json({ error: 'La password corrente non corrisponde' }); //messaggio di errore
       }
     } catch (e) {
       console.log(e.message);
-      res.status(500).json({error: 'Ops...Qualcosa è andato storto'}); //errore interno
+      res.status(500).json({ error: 'Ops...Qualcosa è andato storto' }); //errore interno
     }
   });
 
 
-  app.post('/upload', function(req, res) {
-    console.log(req.files.foo); // the uploaded file object
+  app.post('/upload', function (req, res) {
+    try {
+      console.log(req.files); // the uploaded file object
 
-    fs.mkdirSync('./img/CZ747MY', { recursive: true });
+      if (!fs.existsSync(`./img/${req.body.targa}`)) {
+        fs.mkdirSync(`./img/${req.body.targa}`, { recursive: true }, (err) => {
+          if (err) {
+            return console.error(err);
+          }
+        });
+      }
 
-    req.files.foo.mv('img/CZ747MY/' + req.files.foo.name, function(err) {
-      if (err)
-        return res.send(err);
-    });
 
-    res.send("Hai inviato il file: " + req.files.foo.name);
+
+      for (const name of Object.keys(req.files)) {
+        try {
+          const { data } = req.files[name];
+          fs.writeFileSync(
+            `./img/${req.body.targa}/${name}`,
+            data
+          );
+        }
+        catch (e) { }
+
+      }
+    }
+    catch (e) { }
+    res.end({});
   });
 
   app.listen(port, process.env.ip, () => {
