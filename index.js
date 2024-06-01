@@ -4,26 +4,12 @@ const { ObjectId } = require('mongodb');
 var crypto = require('crypto');
 const dotenv = require('dotenv');
 const bodyParser = require('body-parser');
-const { Console, error } = require('console');
-const session = require('express-session')
+const fs = require('fs');
+
+
 const app = express();
-app.use(session({secret: 'Your_Secret_Key', resave: true, saveUninitialized: true}));
      
-const multer = require('multer');
-
-// Set up storage for uploaded files
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'img/');
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + '-' + file.originalname);
-  }
-});
-
-// Create the multer instance
-const upload = multer({ storage: storage });
-
+const fileUpload = require('express-fileupload');
 
 dotenv.config();
 
@@ -40,6 +26,8 @@ app.use(
   })
 );
 
+app.use(fileUpload());
+
 app.use((req, res, next) => {
   setHeaders(res);
   next();
@@ -54,6 +42,9 @@ const collection = {
 }
 
 if (uri.length > 0) {
+
+  app.use('/img', express.static('img'));
+
   app.get('/getAll', async (req, res) => { //ricerca senza parametri per ottenere tutti i dati
     const client = new MongoClient(uri);
 
@@ -288,9 +279,17 @@ if (uri.length > 0) {
   });
 
 
-  app.post('/upload', upload.single('file'), (req, res) => {
-    // Handle the uploaded file
-    res.json({ message: 'File uploaded successfully!' });
+  app.post('/upload', function(req, res) {
+    console.log(req.files.foo); // the uploaded file object
+
+    fs.mkdirSync('./img/CZ747MY', { recursive: true });
+
+    req.files.foo.mv('img/CZ747MY/' + req.files.foo.name, function(err) {
+      if (err)
+        return res.send(err);
+    });
+
+    res.send("Hai inviato il file: " + req.files.foo.name);
   });
 
   app.listen(port, process.env.ip, () => {
