@@ -50,9 +50,9 @@ if (uri.length > 0) {
 
     try {
       const database = client.db(dbName);
-      const auto = database.collection(collection.auto);
+      const auto = database.collection('Utenti');
 
-      const result = await auto.find().toArray();
+      const result = await auto.find({cars: {$exists: true}}).toArray();
 
       if (result.length == 0)
         res.json({ message: 'Nessun risultato trovato' });
@@ -279,11 +279,10 @@ if (uri.length > 0) {
   });
 
 
-  app.post('/upload', function (req, res) {
+  app.post('/upload', async function (req, res) {
     try {
-      console.log(req.files); // the uploaded file object
       const auto = JSON.parse(req.body.auto);
-      console.log(auto)
+      const user = JSON.parse(req.body.user);
 
       if (!fs.existsSync(`./img/${auto.targa}`)) {
         fs.mkdirSync(`./img/${auto.targa}`, { recursive: true }, (err) => {
@@ -292,7 +291,7 @@ if (uri.length > 0) {
           }
         });
       }
-      
+
       for (const name of Object.keys(req.files)) {
         try {
           const { data } = req.files[name]
@@ -305,11 +304,24 @@ if (uri.length > 0) {
           console.log(e.message);
           res.status(500).json({ error: 'Ops...Qualcosa è andato storto' }); //errore interno
          }
-          
       }
+
+      try{
+        const client = new MongoClient(uri); //istanza del client per la connessione al db
+        const db = client.db(dbName);
+        const users = db.collection('Utenti');
+        const updateUser = await users.updateOne({email: user.email}, {$push: {cars: auto}});
+        console.log("updated user ", updateUser)
+        res.status(200).json({message: 'Auto inserita correttamente'});
+      }catch(e){
+        console.error(e);
+        res.status(500).json({error: 'Ops...Qualcosa è andato storto'});
+      }
+      
     }
-    catch (e) { }
+    catch (e) { 
     res.status(500).json({ error: 'Ops...Qualcosa è andato storto' }); //errore interno
+    }
   });
 
   app.listen(port, process.env.ip, () => {
