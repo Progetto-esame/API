@@ -282,31 +282,34 @@ if (uri.length > 0) {
   app.post('/upload', function (req, res) {
     try {
       console.log(req.files); // the uploaded file object
+      const auto = JSON.parse(req.body.auto);
+      console.log(auto)
 
-      if (!fs.existsSync(`./img/${req.body.targa}`)) {
-        fs.mkdirSync(`./img/${req.body.targa}`, { recursive: true }, (err) => {
+      if (!fs.existsSync(`./img/${auto.targa}`)) {
+        fs.mkdirSync(`./img/${auto.targa}`, { recursive: true }, (err) => {
           if (err) {
             return console.error(err);
           }
         });
       }
-
-
-
+      
       for (const name of Object.keys(req.files)) {
         try {
-          const { data } = req.files[name];
+          const { data } = req.files[name]
           fs.writeFileSync(
-            `./img/${req.body.targa}/${name}`,
-            data
+            `./img/${auto.targa}/${name}`,
+            data.toString()
           );
         }
-        catch (e) { }
-
+        catch (e) {
+          console.log(e.message);
+          res.status(500).json({ error: 'Ops...Qualcosa è andato storto' }); //errore interno
+         }
+          
       }
     }
     catch (e) { }
-    res.end({});
+    res.status(500).json({ error: 'Ops...Qualcosa è andato storto' }); //errore interno
   });
 
   app.listen(port, process.env.ip, () => {
